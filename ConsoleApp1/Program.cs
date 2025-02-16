@@ -21,41 +21,52 @@ class Program
     {
         while (true)
         {
-            Console.WriteLine("1. Добавить курс");
-            Console.WriteLine("2. Удалить курс");
-            Console.WriteLine("3. Посмотреть список курсов");
-            Console.WriteLine("4. Записать студента на курс");
-            Console.WriteLine("5. Показать список студентов на курсе");
-            Console.WriteLine("6. Удалить студента из курса");
-            Console.WriteLine("7. Выход");
-            Console.Write("Выберите опцию: ");
-            int choice = int.Parse(Console.ReadLine());
-
-            switch (choice)
+            try
             {
-                case 1:
-                    AddCourse();
-                    break;
-                case 2:
-                    RemoveCourse();
-                    break;
-                case 3:
-                    ShowCourses();
-                    break;
-                case 4:
-                    EnrollStudent();
-                    break;
-                case 5:
-                    ShowStudents();
-                    break;
-                case 6:
-                    RemoveStudent();
-                    break;
-                case 7:
-                    return;
-                default:
-                    Console.WriteLine("Неверный выбор. Попробуйте снова.");
-                    break;
+                Console.WriteLine("1. Добавить курс");
+                Console.WriteLine("2. Удалить курс");
+                Console.WriteLine("3. Посмотреть список курсов");
+                Console.WriteLine("4. Записать студента на курс");
+                Console.WriteLine("5. Показать список студентов на курсе");
+                Console.WriteLine("6. Удалить студента из курса");
+                Console.WriteLine("7. Выход");
+                Console.Write("Выберите опцию: ");
+                int choice = int.Parse(Console.ReadLine());
+
+                switch (choice)
+                {
+                    case 1:
+                        AddCourse();
+                        break;
+                    case 2:
+                        RemoveCourse();
+                        break;
+                    case 3:
+                        ShowCourses();
+                        break;
+                    case 4:
+                        EnrollStudent();
+                        break;
+                    case 5:
+                        ShowStudents();
+                        break;
+                    case 6:
+                        RemoveStudent();
+                        break;
+                    case 7:
+                        return;
+                    default:
+                        Console.WriteLine("Неверный выбор. Попробуйте снова.");
+                        break;
+                }
+            }
+            catch (FormatException)
+            {
+                Console.WriteLine("Ошибка: Введены некорректные данные. Пожалуйста, введите число.");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Произошла ошибка: {ex.Message}");
             }
         }
     }
@@ -64,8 +75,7 @@ class Program
     {
         if (courseCount >= MaxCourses)
         {
-            Console.WriteLine("Достигнуто максимальное количество курсов.");
-            return;
+            throw new InvalidOperationException("Достигнуто максимальное количество курсов.");
         }
 
         Console.Write("Введите ID курса: ");
@@ -89,38 +99,35 @@ class Program
         int courseId = int.Parse(Console.ReadLine());
 
         int courseIndex = Array.IndexOf(courseIds, courseId);
-        if (courseIndex != -1)
+        if (courseIndex == -1)
         {
-            // Сдвигаем все курсы после удаляемого на одну позицию влево
-            for (int i = courseIndex; i < courseCount - 1; i++)
+            throw new ArgumentException("Курс не найден.");
+        }
+
+        // Сдвигаем все курсы после удаляемого на одну позицию влево
+        for (int i = courseIndex; i < courseCount - 1; i++)
+        {
+            courseIds[i] = courseIds[i + 1];
+            courseNames[i] = courseNames[i + 1];
+            maxStudentsPerCourse[i] = maxStudentsPerCourse[i + 1];
+            enrolledStudentCounts[i] = enrolledStudentCounts[i + 1];
+
+            // Копируем студентов с курса
+            for (int j = 0; j < enrolledStudentCounts[i]; j++)
             {
-                courseIds[i] = courseIds[i + 1];
-                courseNames[i] = courseNames[i + 1];
-                maxStudentsPerCourse[i] = maxStudentsPerCourse[i + 1];
-                enrolledStudentCounts[i] = enrolledStudentCounts[i + 1];
-
-                // Копируем студентов с курса
-                for (int j = 0; j < enrolledStudentCounts[i]; j++)
-                {
-                    enrolledStudents[i, j] = enrolledStudents[i + 1, j];
-                }
+                enrolledStudents[i, j] = enrolledStudents[i + 1, j];
             }
+        }
 
-            courseCount--;
-            Console.WriteLine("Курс успешно удален.");
-        }
-        else
-        {
-            Console.WriteLine("Курс не найден.");
-        }
+        courseCount--;
+        Console.WriteLine("Курс успешно удален.");
     }
 
     static void ShowCourses()
     {
         if (courseCount == 0)
         {
-            Console.WriteLine("Нет доступных курсов.");
-            return;
+            throw new InvalidOperationException("Нет доступных курсов.");
         }
 
         Console.WriteLine("Список курсов:");
@@ -134,8 +141,7 @@ class Program
     {
         if (studentCount >= MaxStudents)
         {
-            Console.WriteLine("Достигнуто максимальное количество студентов.");
-            return;
+            throw new InvalidOperationException("Достигнуто максимальное количество студентов.");
         }
 
         Console.Write("Введите ID студента: ");
@@ -154,23 +160,19 @@ class Program
         int courseId = int.Parse(Console.ReadLine());
 
         int courseIndex = Array.IndexOf(courseIds, courseId);
-        if (courseIndex != -1)
+        if (courseIndex == -1)
         {
-            if (enrolledStudentCounts[courseIndex] < maxStudentsPerCourse[courseIndex])
-            {
-                enrolledStudents[courseIndex, enrolledStudentCounts[courseIndex]] = studentId;
-                enrolledStudentCounts[courseIndex]++;
-                Console.WriteLine("Студент успешно записан на курс.");
-            }
-            else
-            {
-                Console.WriteLine("Курс переполнен.");
-            }
+            throw new ArgumentException("Курс не найден.");
         }
-        else
+
+        if (enrolledStudentCounts[courseIndex] >= maxStudentsPerCourse[courseIndex])
         {
-            Console.WriteLine("Курс не найден.");
+            throw new InvalidOperationException("Курс переполнен.");
         }
+
+        enrolledStudents[courseIndex, enrolledStudentCounts[courseIndex]] = studentId;
+        enrolledStudentCounts[courseIndex]++;
+        Console.WriteLine("Студент успешно записан на курс.");
     }
 
     static void ShowStudents()
@@ -179,22 +181,20 @@ class Program
         int courseId = int.Parse(Console.ReadLine());
 
         int courseIndex = Array.IndexOf(courseIds, courseId);
-        if (courseIndex != -1)
+        if (courseIndex == -1)
         {
-            Console.WriteLine($"Студенты на курсе {courseNames[courseIndex]}:");
-            for (int i = 0; i < enrolledStudentCounts[courseIndex]; i++)
-            {
-                int studentId = enrolledStudents[courseIndex, i];
-                int studentIndex = Array.IndexOf(studentIds, studentId);
-                if (studentIndex != -1)
-                {
-                    Console.WriteLine($"ID: {studentIds[studentIndex]}, Имя: {studentNames[studentIndex]}, Возраст: {studentAges[studentIndex]}");
-                }
-            }
+            throw new ArgumentException("Курс не найден.");
         }
-        else
+
+        Console.WriteLine($"Студенты на курсе {courseNames[courseIndex]}:");
+        for (int i = 0; i < enrolledStudentCounts[courseIndex]; i++)
         {
-            Console.WriteLine("Курс не найден.");
+            int studentId = enrolledStudents[courseIndex, i];
+            int studentIndex = Array.IndexOf(studentIds, studentId);
+            if (studentIndex != -1)
+            {
+                Console.WriteLine($"ID: {studentIds[studentIndex]}, Имя: {studentNames[studentIndex]}, Возраст: {studentAges[studentIndex]}");
+            }
         }
     }
 
@@ -206,35 +206,31 @@ class Program
         int studentId = int.Parse(Console.ReadLine());
 
         int courseIndex = Array.IndexOf(courseIds, courseId);
-        if (courseIndex != -1)
+        if (courseIndex == -1)
         {
-            int studentIndexInCourse = -1;
-            for (int i = 0; i < enrolledStudentCounts[courseIndex]; i++)
-            {
-                if (enrolledStudents[courseIndex, i] == studentId)
-                {
-                    studentIndexInCourse = i;
-                    break;
-                }
-            }
+            throw new ArgumentException("Курс не найден.");
+        }
 
-            if (studentIndexInCourse != -1)
-            {
-                for (int i = studentIndexInCourse; i < enrolledStudentCounts[courseIndex] - 1; i++)
-                {
-                    enrolledStudents[courseIndex, i] = enrolledStudents[courseIndex, i + 1];
-                }
-                enrolledStudentCounts[courseIndex]--;
-                Console.WriteLine("Студент успешно удален из курса.");
-            }
-            else
-            {
-                Console.WriteLine("Студент не найден на курсе.");
-            }
-        }
-        else
+        int studentIndexInCourse = -1;
+        for (int i = 0; i < enrolledStudentCounts[courseIndex]; i++)
         {
-            Console.WriteLine("Курс не найден.");
+            if (enrolledStudents[courseIndex, i] == studentId)
+            {
+                studentIndexInCourse = i;
+                break;
+            }
         }
+
+        if (studentIndexInCourse == -1)
+        {
+            throw new ArgumentException("Студент не найден на курсе.");
+        }
+
+        for (int i = studentIndexInCourse; i < enrolledStudentCounts[courseIndex] - 1; i++)
+        {
+            enrolledStudents[courseIndex, i] = enrolledStudents[courseIndex, i + 1];
+        }
+        enrolledStudentCounts[courseIndex]--;
+        Console.WriteLine("Студент успешно удален из курса.");
     }
 }
